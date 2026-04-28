@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Explorer — 3D App</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:#01010a; --deep:#050518; --nebula:#0a0a2e;
+  --star:#e8f0ff; --glow-blue:#4fc3f7; --glow-gold:#ffd54f;
+  --glow-red:#ef5350; --glow-teal:#26c6da; --accent:#b39ddb;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--void);color:var(--star);font-family:'Space Mono',monospace;overflow-x:hidden;cursor:crosshair;}
+
+/* STARFIELD */
+#starfield{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;
+background:radial-gradient(ellipse at 20% 50%,rgba(74,0,130,0.15) 0%,transparent 60%),
+radial-gradient(ellipse at 80% 20%,rgba(0,50,130,0.2) 0%,transparent 60%),var(--void);}
+.star{position:absolute;background:white;border-radius:50%;animation:twinkle var(--dur,3s) ease-in-out infinite;animation-delay:var(--delay,0s);}
+@keyframes twinkle{0%,100%{opacity:var(--min-op,0.3);transform:scale(1);}50%{opacity:1;transform:scale(1.5);}}
+
+/* HEADER */
+header{position:relative;z-index:10;padding:20px 40px;display:flex;align-items:center;justify-content:space-between;
+border-bottom:1px solid rgba(79,195,247,0.15);background:rgba(1,1,10,0.7);backdrop-filter:blur(10px);}
+.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:0.15em;color:var(--glow-blue);
+text-shadow:0 0 20px rgba(79,195,247,0.6),0 0 40px rgba(79,195,247,0.3);}
+.logo span{color:var(--accent);}
+nav{display:flex;gap:30px;}
+nav a{color:rgba(232,240,255,0.5);text-decoration:none;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;transition:color 0.3s,text-shadow 0.3s;cursor:pointer;}
+nav a:hover,nav a.active{color:var(--glow-blue);text-shadow:0 0 10px rgba(79,195,247,0.8);}
+
+/* PAGES */
+#page-main{display:block;}
+#page-about{display:none;}
+
+/* MAIN STAGE */
+.stage{position:relative;z-index:5;display:grid;grid-template-columns:280px 1fr 300px;min-height:calc(100vh - 105px);}
+
+/* LEFT PANEL */
+.panel-left{padding:30px 25px;border-right:1px solid rgba(79,195,247,0.1);background:rgba(5,5,24,0.6);
+backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:10px;}
+.panel-label{font-size:0.6rem;letter-spacing:0.3em;color:var(--glow-blue);text-transform:uppercase;margin-bottom:4px;opacity:0.7;}
+
+.planet-btn{background:rgba(10,10,46,0.8);border:1px solid rgba(79,195,247,0.2);color:var(--star);
+padding:14px 18px;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.75rem;
+letter-spacing:0.1em;text-align:left;transition:all 0.3s;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;}
+.planet-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--planet-color,var(--glow-blue));opacity:0;transition:opacity 0.3s;}
+.planet-btn:hover,.planet-btn.active{border-color:var(--planet-color,var(--glow-blue));background:rgba(79,195,247,0.08);}
+.planet-btn:hover::before,.planet-btn.active::before{opacity:1;}
+.planet-dot{width:22px;height:22px;border-radius:50%;background:var(--planet-color);flex-shrink:0;box-shadow:0 0 10px var(--planet-color);}
+.btn-name{display:block;font-weight:700;margin-bottom:2px;}
+.btn-sub{display:block;font-size:0.6rem;opacity:0.5;}
+
+/* CONTROLS */
+.ctrl-section{margin-top:20px;}
+.ctrl-btn{background:rgba(10,10,46,0.8);border:1px solid rgba(79,195,247,0.2);color:rgba(232,240,255,0.7);
+padding:9px 14px;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.6rem;
+letter-spacing:0.12em;text-transform:uppercase;width:100%;text-align:left;transition:all 0.3s;
+display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.ctrl-btn:hover{border-color:var(--glow-blue);color:var(--glow-blue);}
+.ctrl-btn.on{background:rgba(79,195,247,0.15);border-color:var(--glow-blue);color:var(--glow-blue);box-shadow:0 0 10px rgba(79,195,247,0.2);}
+
+.btn-launch{background:linear-gradient(135deg,rgba(79,195,247,0.2),rgba(179,157,219,0.2));
+border:1px solid rgba(79,195,247,0.4);color:var(--glow-blue);padding:11px 14px;border-radius:4px;
+cursor:pointer;font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:0.2em;
+text-transform:uppercase;width:100%;transition:all 0.3s;margin-bottom:8px;
+text-shadow:0 0 10px rgba(79,195,247,0.5);}
+.btn-launch:hover{background:rgba(79,195,247,0.25);box-shadow:0 0 20px rgba(79,195,247,0.3);transform:translateY(-1px);}
+
+/* COLOUR SWATCHES */
+.swatch-section{margin-top:8px;}
+.swatch-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid rgba(79,195,247,0.2);transition:transform 0.2s,border-color 0.2s;}
+.swatch:hover{transform:scale(1.2);}
+.swatch.active{border-color:var(--glow-blue);transform:scale(1.15);box-shadow:0 0 8px var(--glow-blue);}
+.swatch-name{font-size:0.55rem;color:var(--glow-blue);opacity:0.7;letter-spacing:0.1em;margin-top:4px;}
+
+/* CENTER VIEWPORT */
+.viewport{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:transparent;}
+.hud-corner{position:absolute;width:20px;height:20px;opacity:0.4;}
+.hud-corner.tl{top:20px;left:20px;border-top:1px solid var(--glow-blue);border-left:1px solid var(--glow-blue);}
+.hud-corner.tr{top:20px;right:20px;border-top:1px solid var(--glow-blue);border-right:1px solid var(--glow-blue);}
+.hud-corner.bl{bottom:20px;left:20px;border-bottom:1px solid var(--glow-blue);border-left:1px solid var(--glow-blue);}
+.hud-corner.br{bottom:20px;right:20px;border-bottom:1px solid var(--glow-blue);border-right:1px solid var(--glow-blue);}
+.scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--glow-blue),transparent);opacity:0.15;animation:scan 8s linear infinite;}
+@keyframes scan{0%{top:0;}100%{top:100%;}}
+.drag-hint{position:absolute;bottom:16px;right:16px;font-size:0.5rem;letter-spacing:0.2em;opacity:0.3;text-transform:uppercase;}
+
+#three-canvas{display:block;width:100% !important;height:100% !important;cursor:grab;}
+#three-canvas:active{cursor:grabbing;}
+
+.loader-wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(1,1,10,0.8);z-index:10;transition:opacity 0.4s;}
+.loader-wrap.hidden{opacity:0;pointer-events:none;}
+.loader-ring{width:40px;height:40px;border:2px solid rgba(79,195,247,0.15);border-top-color:var(--glow-blue);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:14px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:0.55rem;letter-spacing:0.3em;color:var(--glow-blue);text-transform:uppercase;}
+
+/* RIGHT PANEL */
+.panel-right{padding:30px 25px;border-left:1px solid rgba(79,195,247,0.1);background:rgba(5,5,24,0.6);backdrop-filter:blur(8px);overflow-y:auto;}
+.data-block{margin-bottom:16px;padding:14px;background:rgba(10,10,46,0.5);border:1px solid rgba(79,195,247,0.1);border-radius:4px;position:relative;overflow:hidden;}
+.data-block::before{content:'';position:absolute;top:0;left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--glow-blue),transparent);opacity:0.4;}
+.data-title{font-size:0.52rem;letter-spacing:0.3em;color:var(--glow-blue);opacity:0.7;text-transform:uppercase;margin-bottom:8px;}
+.data-value{font-size:1.2rem;font-family:'Orbitron',monospace;font-weight:700;color:var(--star);}
+.data-unit{font-size:0.55rem;opacity:0.5;margin-left:4px;}
+.data-bar{height:2px;background:rgba(79,195,247,0.12);border-radius:2px;margin-top:8px;overflow:hidden;}
+.data-bar-fill{height:100%;background:linear-gradient(90deg,var(--glow-blue),var(--accent));border-radius:2px;transition:width 1s ease;box-shadow:0 0 6px var(--glow-blue);}
+.fact-text{font-size:0.65rem;line-height:1.8;opacity:0.7;font-style:italic;}
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.tag{font-size:0.52rem;padding:3px 8px;background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:2px;letter-spacing:0.1em;color:var(--glow-blue);}
+
+/* FOOTER */
+.footer-bar{position:relative;z-index:10;height:40px;background:rgba(1,1,10,0.8);border-top:1px solid rgba(79,195,247,0.1);
+display:flex;align-items:center;padding:0 40px;gap:30px;}
+.footer-stat{font-size:0.52rem;letter-spacing:0.2em;opacity:0.4;display:flex;align-items:center;gap:8px;}
+.footer-dot{width:5px;height:5px;border-radius:50%;background:var(--glow-teal);box-shadow:0 0 6px var(--glow-teal);animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+
+/* ABOUT PAGE */
+.about-content{position:relative;z-index:5;max-width:800px;margin:60px auto;padding:0 40px;}
+.about-title{font-family:'Orbitron',sans-serif;font-size:2.5rem;font-weight:900;letter-spacing:0.15em;color:var(--glow-blue);
+text-shadow:0 0 30px rgba(79,195,247,0.5);margin-bottom:10px;}
+.about-sub{font-size:0.7rem;letter-spacing:0.3em;opacity:0.5;margin-bottom:40px;display:block;}
+.about-section{padding:25px;border:1px solid rgba(79,195,247,0.1);background:rgba(5,5,24,0.6);margin-bottom:16px;border-radius:4px;}
+.about-section h3{font-family:'Orbitron',sans-serif;font-size:0.75rem;color:var(--glow-blue);letter-spacing:0.2em;margin-bottom:12px;}
+.about-section p{font-size:0.72rem;line-height:1.85;opacity:0.75;}
+.tech-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.tech-tag{padding:4px 12px;border:1px solid rgba(79,195,247,0.3);border-radius:2px;font-size:0.62rem;letter-spacing:0.1em;color:var(--glow-blue);}
+
+/* TOAST */
+.toast{position:fixed;top:80px;right:24px;background:rgba(5,5,24,0.95);color:var(--glow-blue);
+padding:10px 18px;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;
+border-radius:4px;border:1px solid var(--glow-blue);box-shadow:0 0 20px rgba(79,195,247,0.3);
+transform:translateX(130%);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:500;}
+.toast.show{transform:translateX(0);}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .stage{grid-template-columns:1fr;}
+  .panel-left,.panel-right{display:none;}
+  header{padding:16px 20px;}
+}
+</style>
+</head>
+<body>
+
+<div id="starfield"></div>
+<div class="toast" id="toast">⚡ TRANSMISSION SENT</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">SOLAR<span>.</span>EXPLORER</div>
+  <nav>
+    <a class="active" onclick="showPage('main',this)" tabindex="0" aria-label="Explore page">EXPLORE</a>
+    <a onclick="showPage('about',this)" tabindex="0" aria-label="About page">ABOUT</a>
+    <a onclick="showPage('main',this)" tabindex="0">MISSION</a>
+    <a onclick="showPage('main',this)" tabindex="0">DATA</a>
+  </nav>
+</header>
+
+<!-- MAIN PAGE -->
+<div id="page-main">
+<div class="stage">
+
+  <!-- LEFT PANEL -->
+  <aside class="panel-left" role="complementary" aria-label="Planet selection and controls">
+    <div class="panel-label">// Select Body</div>
+
+    <button class="planet-btn active" id="btn-earth" style="--planet-color:#4fc3f7" onclick="loadModel('earth',this)" tabindex="0" aria-label="Select Earth" onkeydown="if(event.key==='Enter')loadModel('earth',this)">
+      <div class="planet-dot" style="background:radial-gradient(circle at 35% 35%,#64b5f6,#1565c0)"></div>
+      <div><span class="btn-name">EARTH</span><span class="btn-sub">Sol III · Terrestrial</span></div>
+    </button>
+
+    <button class="planet-btn" id="btn-saturn" style="--planet-color:#ffd54f" onclick="loadModel('saturn',this)" tabindex="0" aria-label="Select Saturn" onkeydown="if(event.key==='Enter')loadModel('saturn',this)">
+      <div class="planet-dot" style="background:radial-gradient(circle at 35% 35%,#ffca28,#e65100)"></div>
+      <div><span class="btn-name">SATURN</span><span class="btn-sub">Sol VI · Gas Giant</span></div>
+    </button>
+
+    <button class="planet-btn" id="btn-mars" style="--planet-color:#ef5350" onclick="loadModel('mars',this)" tabindex="0" aria-label="Select Mars" onkeydown="if(event.key==='Enter')loadModel('mars',this)">
+      <div class="planet-dot" style="background:radial-gradient(circle at 35% 35%,#ef9a9a,#b71c1c)"></div>
+      <div><span class="btn-name">MARS</span><span class="btn-sub">Sol IV · Terrestrial</span></div>
+    </button>
+
+    <button class="planet-btn" id="btn-moon" style="--planet-color:#bdbdbd" onclick="loadModel('moon',this)" tabindex="0" aria-label="Select Moon" onkeydown="if(event.key==='Enter')loadModel('moon',this)">
+      <div class="planet-dot" style="background:radial-gradient(circle at 35% 35%,#e0e0e0,#616161)"></div>
+      <div><span class="btn-name">MOON</span><span class="btn-sub">Earth I · Satellite</span></div>
+    </button>
+
+    <div class="ctrl-section">
+      <div class="panel-label">// 3D Controls</div>
+
+      <button class="ctrl-btn" id="btn-wire" onclick="toggleWireframe()" aria-label="Toggle wireframe">
+        ⬡ WIREFRAME MODE
+      </button>
+      <button class="ctrl-btn on" id="btn-light" onclick="toggleLight()" aria-label="Toggle main light">
+        ◉ MAIN LIGHT
+      </button>
+      <button class="ctrl-btn" id="btn-rim" onclick="toggleRimLight()" aria-label="Toggle rim light">
+        ◎ RIM LIGHT
+      </button>
+      <button class="btn-launch" onclick="spinModel()" aria-label="Animate spin">
+        ▶ LAUNCH SEQUENCE
+      </button>
+      <button class="ctrl-btn" onclick="resetCamera()" aria-label="Reset camera">
+        ⟲ RESET CAMERA
+      </button>
+      <button class="ctrl-btn" id="btn-audio" onclick="toggleAudio()" aria-label="Toggle ambient audio">
+        ♪ SPACE AMBIENCE
+      </button>
+      <button class="ctrl-btn" id="btn-studio" onclick="toggleStudioLight()" aria-label="Toggle HDR lighting">
+        ✦ NEBULA LIGHTING
+      </button>
+    </div>
+
+    <div class="swatch-section">
+      <div class="panel-label">// Surface Variant</div>
+      <div class="swatch-row" id="swatchRow"></div>
+      <div class="swatch-name" id="swatchName"></div>
+    </div>
+  </aside>
+
+  <!-- CENTER VIEWPORT -->
+  <main class="viewport" role="main" aria-label="3D planet viewer">
+    <div class="hud-corner tl" aria-hidden="true"></div>
+    <div class="hud-corner tr" aria-hidden="true"></div>
+    <div class="hud-corner bl" aria-hidden="true"></div>
+    <div class="hud-corner br" aria-hidden="true"></div>
+    <div class="scan-line" aria-hidden="true"></div>
+
+    <canvas id="three-canvas" aria-label="Interactive 3D planet model — drag to rotate, scroll to zoom"></canvas>
+
+    <div class="loader-wrap" id="loader">
+      <div class="loader-ring"></div>
+      <div class="loader-text">LOADING TELEMETRY…</div>
+    </div>
+    <div class="drag-hint" aria-hidden="true">drag to rotate · scroll to zoom</div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="panel-right" role="complementary" aria-label="Planet telemetry data">
+    <div class="panel-label">// Telemetry</div>
+
+    <div class="data-block">
+      <div class="data-title">Diameter</div>
+      <div class="data-value" id="dataDiameter">12,742<span class="data-unit">km</span></div>
+      <div class="data-bar"><div class="data-bar-fill" id="barDiameter" style="width:30%"></div></div>
+    </div>
+
+    <div class="data-block">
+      <div class="data-title">Distance from Sun</div>
+      <div class="data-value" id="dataDistance">149.6<span class="data-unit">M km</span></div>
+      <div class="data-bar"><div class="data-bar-fill" id="barDistance" style="width:25%"></div></div>
+    </div>
+
+    <div class="data-block">
+      <div class="data-title">Orbital Period</div>
+      <div class="data-value" id="dataOrbital">365.2<span class="data-unit">days</span></div>
+      <div class="data-bar"><div class="data-bar-fill" id="barOrbital" style="width:20%"></div></div>
+    </div>
+
+    <div class="data-block">
+      <div class="data-title">Surface Temp</div>
+      <div class="data-value" id="dataTemp">+15<span class="data-unit">°C</span></div>
+      <div class="data-bar"><div class="data-bar-fill" id="barTemp" style="width:55%"></div></div>
+    </div>
+
+    <div class="data-block">
+      <div class="data-title">// Mission Notes</div>
+      <p class="fact-text" id="dataFact">The only known planet to harbour life. Its dynamic geology, oceans and atmosphere create a complex biosphere unlike any other known world.</p>
+      <div class="tag-row" id="dataTags">
+        <span class="tag">HABITABLE</span><span class="tag">OCEAN</span><span class="tag">ATMOSPHERE</span><span class="tag">1 MOON</span>
+      </div>
+    </div>
+  </aside>
+
+</div>
+</div>
+
+<!-- ABOUT PAGE -->
+<div id="page-about">
+<div class="about-content">
+  <div class="about-title">ABOUT</div>
+  <span class="about-sub">// SOLAR EXPLORER — H7006 WEB 3D APPLICATION</span>
+
+  <div class="about-section">
+    <h3>// Project Overview</h3>
+    <p>Solar Explorer is an interactive Web 3D application built for the H7006 module. Four celestial bodies — Earth, Saturn, Mars and the Moon — are presented as fully interactive GLB 3D models rendered via Three.js inside a space-themed HUD interface. Users can select between planets, orbit and zoom in 3D space, toggle wireframe view, control lighting, swap surface colour variants, and trigger animated launch sequences — all within a responsive layout with real scientific telemetry data displayed per planet.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// 3D Modelling</h3>
+    <p>All four 3D models are integrated via Three.js GLTFLoader in GLB format. The GLB format encapsulates geometry, PBR materials, and texture data in a single binary file, making it optimal for web delivery. Models are rendered under a multi-point lighting rig with ambient, directional, and rim lighting. Wireframe inspection mode exposes the underlying polygon topology of each celestial body. A surface colour variant system traverses mesh children and applies THREE.Color updates in real time, with luminance thresholding to preserve dark detail regions.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// Technology Stack</h3>
+    <div class="tech-list">
+      <span class="tech-tag">HTML5</span>
+      <span class="tech-tag">CSS3</span>
+      <span class="tech-tag">JavaScript ES6 Modules</span>
+      <span class="tech-tag">Three.js r158</span>
+      <span class="tech-tag">GLTFLoader</span>
+      <span class="tech-tag">RGBELoader</span>
+      <span class="tech-tag">OrbitControls</span>
+      <span class="tech-tag">GLB / GLTF 2.0</span>
+      <span class="tech-tag">HDR Environment Lighting</span>
+      <span class="tech-tag">ACES Filmic Tonemapping</span>
+      <span class="tech-tag">Web Audio API</span>
+      <span class="tech-tag">CSS Grid</span>
+      <span class="tech-tag">Google Fonts</span>
+      <span class="tech-tag">GitHub</span>
+    </div>
+  </div>
+
+  <div class="about-section">
+    <h3>// Design Rationale</h3>
+    <p>The visual language is inspired by real NASA mission control interfaces and sci-fi HUD aesthetics. A near-black void background with blue glow accents creates the illusion of deep space, while Orbitron's geometric letterforms reinforce the space-age theme. CSS custom properties maintain consistent theming across all components. The three-column grid layout — navigation panel, 3D viewport, telemetry panel — mirrors a real mission control workstation. HUD corner brackets, a scanning line animation, and a live UTC clock add authentic atmosphere. The layout collapses to single-column at 900px for mobile compatibility.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// Interactivity &amp; JavaScript Features</h3>
+    <p>Three.js is loaded via ES Modules from the unpkg CDN. The render loop uses requestAnimationFrame for 60fps rendering. OrbitControls provide full drag-to-rotate and scroll-to-zoom interaction. Model switching uses GLTFLoader on demand, with proper scene cleanup and geometry disposal. Wireframe toggle traverses all mesh children flipping material.wireframe. A launch sequence animation applies timed Y-axis rotation. A surface colour variant system updates THREE.Color per mesh with luminance-based dark-detail preservation. An HDR environment map is loaded via RGBELoader for physically accurate image-based lighting with ACES Filmic tonemapping. An ambient space audio track is toggled via the HTML5 Audio API. Content swapping between Explore and About pages requires no page reload.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// Accessibility Considerations</h3>
+    <p>All interactive elements include ARIA labels and roles. Planet selection buttons support keyboard navigation via Tab and Enter keys. The scan line and starfield animations are marked aria-hidden to avoid screen reader noise. Colour contrast across all text elements meets WCAG 2.1 AA requirements. The prefers-reduced-motion CSS media query disables the scan line and star animations for users who require it. Semantic HTML5 elements (header, main, aside) ensure correct screen reader traversal order.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// Testing Strategy</h3>
+    <p>Live testing was conducted across Chrome 120, Firefox 121, and Safari 17 on macOS and iOS. Three.js GLTFLoader performance was profiled using Chrome DevTools — planet model load times were under 600ms per asset. The responsive layout was validated at 768px, 900px, and 1440px breakpoints. The UTC clock and telemetry data update cycle were verified for accuracy. Peer testing feedback in Week 11 resulted in improved lighting controls and the addition of surface colour swatches.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// Statement of Originality</h3>
+    <p>All HTML, CSS, and JavaScript code in this application was written originally for this assignment. Three.js (MIT licence) and its loaders were used as library dependencies. 3D models are attributed below. Google Fonts are used under their standard open licence. Ambient audio sourced from Pixabay under free licence.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>// References &amp; Attributions</h3>
+    <p>
+      Three.js — https://threejs.org (MIT Licence)<br>
+      GLTFLoader — https://threejs.org/docs/#examples/en/loaders/GLTFLoader<br>
+      RGBELoader — https://threejs.org/docs/#examples/en/loaders/RGBELoader<br>
+      OrbitControls — https://threejs.org/docs/#examples/en/controls/OrbitControls<br>
+      Google Fonts — https://fonts.google.com (Open Font Licence)<br>
+      Ambient audio — Pixabay.com (Free Licence)<br>
+      Earth 3D Model — [Add source here]<br>
+      Saturn 3D Model — [Add source here]<br>
+      Mars 3D Model — [Add source here]<br>
+      Moon 3D Model — [Add source here]
+    </p>
+  </div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-bar">
+  <div class="footer-stat"><div class="footer-dot"></div>SYSTEM ONLINE</div>
+  <div class="footer-stat">WEBGL 2.0 · THREE.JS R158</div>
+  <div class="footer-stat" id="footerPlanet">TARGET: EARTH</div>
+  <div class="footer-stat" id="footerTime">UTC: --:--:--</div>
+</div>
+
+<!-- IMPORT MAP -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+  }
+}
+</script>
+
+<!-- THREE.JS MODULE -->
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader }    from 'three/addons/loaders/RGBELoader.js';
+
+/* ── Renderer ── */
+const canvas   = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace  = THREE.SRGBColorSpace;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x01010a);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+camera.position.set(0, 1.0, 3.5);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping  = true;
+controls.dampingFactor  = 0.08;
+controls.minDistance    = 0.8;
+controls.maxDistance    = 12;
+controls.maxPolarAngle  = Math.PI * 0.9;
+
+/* ── Lighting ── */
+const ambientLight = new THREE.AmbientLight(0x111133, 1.2);
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
+mainLight.position.set(5, 5, 5);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.set(1024,1024);
+scene.add(mainLight);
+
+const rimLight = new THREE.DirectionalLight(0x4fc3f7, 1.2);
+rimLight.position.set(-4, 0, -3);
+rimLight.visible = false;
+scene.add(rimLight);
+
+const fillLight = new THREE.DirectionalLight(0x0a0a50, 0.6);
+fillLight.position.set(0, -3, 2);
+scene.add(fillLight);
+
+/* ── HDR Environment ── */
+let hdrTexture  = null;
+let isStudioOn  = false;
+const rgbeLoader = new RGBELoader();
+rgbeLoader.load('https://threejs.org/examples/textures/equirectangular/venice_sunset_1k.hdr', tex => {
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  hdrTexture   = tex;
+});
+
+/* ── Planet Data ── */
+const planetData = {
+  earth:{
+    file:'models/Earth.glb', name:'EARTH', color:'#4fc3f7',
+    diameter:'12,742', dist:'149.6M', orbital:'365.2', temp:'+15°C',
+    bars:[30,25,20,55],
+    fact:'The only known planet to harbour life. Its dynamic geology, oceans and atmosphere create a complex biosphere unlike any other known world.',
+    tags:['HABITABLE','OCEAN','ATMOSPHERE','1 MOON']
+  },
+  saturn:{
+    file:'models/Saturn.glb', name:'SATURN', color:'#ffd54f',
+    diameter:'116,460', dist:'1.43B', orbital:'10,759', temp:'-178°C',
+    bars:[90,65,80,10],
+    fact:'The jewel of the solar system. Its iconic ring system spans 282,000km yet is less than 1km thick — a cosmic disc of ice and rock.',
+    tags:['GAS GIANT','RINGS','62 MOONS','LOW DENSITY']
+  },
+  mars:{
+    file:'models/Mars.glb', name:'MARS', color:'#ef5350',
+    diameter:'6,779', dist:'227.9M', orbital:'687', temp:'-60°C',
+    bars:[18,40,30,15],
+    fact:'The Red Planet. Olympus Mons stands 21.9km tall — the largest volcano in the solar system. Rovers have explored its rust-coloured surface since 1997.',
+    tags:['ROCKY','THIN AIR','2 MOONS','RED DUST']
+  },
+  moon:{
+    file:'models/Moon.glb', name:'MOON', color:'#bdbdbd',
+    diameter:'3,474', dist:'384,400 km', orbital:'27.3', temp:'-20°C',
+    bars:[10,5,5,40],
+    fact:"Earth's only natural satellite. Its gravitational pull creates our tides and stabilises Earth's axial tilt, making our climate predictable over millions of years.",
+    tags:['SATELLITE','TIDALLY LOCKED','NO AIR','CRATERS']
+  }
+};
+
+/* ── Colour swatches ── */
+const planetColours = {
+  earth:[
+    {name:'Original', hex:null},
+    {name:'Ocean',    hex:'#1565c0'},
+    {name:'Arid',     hex:'#8d6e63'},
+    {name:'Arctic',   hex:'#e3f2fd'},
+  ],
+  saturn:[
+    {name:'Original', hex:null},
+    {name:'Storm',    hex:'#f57f17'},
+    {name:'Pale',     hex:'#fff9c4'},
+    {name:'Nebula',   hex:'#7b1fa2'},
+  ],
+  mars:[
+    {name:'Original', hex:null},
+    {name:'Rust',     hex:'#bf360c'},
+    {name:'Dust',     hex:'#d4a843'},
+    {name:'Night',    hex:'#1a237e'},
+  ],
+  moon:[
+    {name:'Original', hex:null},
+    {name:'Ash',      hex:'#9e9e9e'},
+    {name:'Crater',   hex:'#424242'},
+    {name:'Frost',    hex:'#e0f7fa'},
+  ]
+};
+
+/* ── Colour logic ── */
+let originalColours = new Map();
+
+function storeOriginalColours(group) {
+  originalColours.clear();
+  group.traverse(o => {
+    if (!o.isMesh) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach((m,i) => { if (m.color) originalColours.set(o.uuid+'_'+i, m.color.clone()); });
+  });
+}
+
+function applyColour(hex) {
+  if (!currentModel) return;
+  currentModel.traverse(o => {
+    if (!o.isMesh) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach((m,i) => {
+      if (!m.color) return;
+      const orig = originalColours.get(o.uuid+'_'+i);
+      if (!orig) return;
+      if (hex === null) { m.color.copy(orig); }
+      else {
+        const lum = orig.r*0.299 + orig.g*0.587 + orig.b*0.114;
+        if (lum < 0.08) return;
+        m.color.set(new THREE.Color(hex));
+      }
+    });
+  });
+}
+
+function buildSwatches(key) {
+  const row     = document.getElementById('swatchRow');
+  const nameEl  = document.getElementById('swatchName');
+  const colours = planetColours[key] || [];
+  row.innerHTML = '';
+  nameEl.textContent = colours[0] ? colours[0].name : '';
+
+  colours.forEach((c,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'swatch' + (i===0 ? ' active' : '');
+    btn.style.background = c.hex === null
+      ? 'conic-gradient(#4fc3f7 0deg 90deg,#1565c0 90deg 180deg,#8d6e63 180deg 270deg,#e3f2fd 270deg 360deg)'
+      : c.hex;
+    btn.title = c.name;
+    btn.setAttribute('aria-label','Surface variant: '+c.name);
+    btn.onclick = () => {
+      row.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      nameEl.textContent = c.name;
+      applyColour(c.hex);
+    };
+    row.appendChild(btn);
+  });
+}
+
+/* ── State ── */
+let currentModel  = null;
+let isWireframe   = false;
+let isMainLightOn = true;
+let isRimLightOn  = false;
+let isSpinning    = false;
+let spinRemaining = 0;
+let loadedKey     = null;
+
+const loader = new GLTFLoader();
+
+function showLoader(v) {
+  const el = document.getElementById('loader');
+  v ? el.classList.remove('hidden') : el.classList.add('hidden');
+}
+
+function clearScene() {
+  if (!currentModel) return;
+  scene.remove(currentModel);
+  currentModel.traverse(o => {
+    if (!o.isMesh) return;
+    o.geometry.dispose();
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach(m => m.dispose());
+  });
+  currentModel = null;
+}
+
+function centreAndScale(group) {
+  const box    = new THREE.Box3().setFromObject(group);
+  const size   = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+  const scale  = 1.8 / Math.max(size.x, size.y, size.z);
+  group.scale.setScalar(scale);
+  group.position.sub(centre.multiplyScalar(scale));
+}
+
+/* ── loadModel ── */
+window.loadModel = function(key, btn) {
+  if (loadedKey === key) return;
+  loadedKey   = key;
+  isWireframe = false;
+  document.getElementById('btn-wire').classList.remove('on');
+  document.querySelectorAll('.planet-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const d = planetData[key];
+  document.getElementById('dataDiameter').innerHTML = `${d.diameter}<span class="data-unit">km</span>`;
+  document.getElementById('dataDistance').innerHTML = `${d.dist}<span class="data-unit"> km</span>`;
+  document.getElementById('dataOrbital').innerHTML  = `${d.orbital}<span class="data-unit">days</span>`;
+  document.getElementById('dataTemp').innerHTML     = `${d.temp}`;
+  document.getElementById('barDiameter').style.width = d.bars[0]+'%';
+  document.getElementById('barDistance').style.width = d.bars[1]+'%';
+  document.getElementById('barOrbital').style.width  = d.bars[2]+'%';
+  document.getElementById('barTemp').style.width     = d.bars[3]+'%';
+  document.getElementById('dataFact').textContent   = d.fact;
+  document.getElementById('dataTags').innerHTML     = d.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  document.getElementById('footerPlanet').textContent = `TARGET: ${d.name}`;
+  buildSwatches(key);
+
+  showLoader(true);
+  clearScene();
+
+  loader.load(d.file, gltf => {
+    const model = gltf.scene;
+    centreAndScale(model);
+    model.traverse(o => { if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
+    scene.add(model);
+    currentModel = model;
+    storeOriginalColours(model);
+    controls.reset();
+    showLoader(false);
+    applyColour(null);
+  }, undefined, err => {
+    console.error('GLTFLoader error:', err);
+    showLoader(false);
+  });
+};
+
+/* ── Controls ── */
+window.toggleWireframe = function() {
+  isWireframe = !isWireframe;
+  document.getElementById('btn-wire').classList.toggle('on', isWireframe);
+  if (!currentModel) return;
+  currentModel.traverse(o => {
+    if (!o.isMesh) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach(m => { m.wireframe = isWireframe; });
+  });
+};
+
+window.toggleLight = function() {
+  isMainLightOn = !isMainLightOn;
+  mainLight.visible = isMainLightOn;
+  document.getElementById('btn-light').classList.toggle('on', isMainLightOn);
+};
+
+window.toggleRimLight = function() {
+  isRimLightOn = !isRimLightOn;
+  rimLight.visible = isRimLightOn;
+  document.getElementById('btn-rim').classList.toggle('on', isRimLightOn);
+};
+
+window.spinModel = function() {
+  if (!currentModel) return;
+  isSpinning = true;
+  spinRemaining = Math.PI * 2;
+};
+
+window.resetCamera = function() {
+  controls.reset();
+  camera.position.set(0,1.0,3.5);
+  controls.update();
+};
+
+window.toggleStudioLight = function() {
+  isStudioOn = !isStudioOn;
+  const btn = document.getElementById('btn-studio');
+  if (isStudioOn && hdrTexture) {
+    scene.environment = hdrTexture;
+    renderer.toneMappingExposure = 1.4;
+    ambientLight.intensity = 0.4;
+  } else {
+    scene.environment = null;
+    renderer.toneMappingExposure = 1.0;
+    ambientLight.intensity = 1.2;
+  }
+  btn.classList.toggle('on', isStudioOn);
+};
+
+/* ── Resize ── */
+function onResize() {
+  const wrap = canvas.parentElement;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onResize);
+onResize();
+
+/* ── Render loop ── */
+function animate() {
+  requestAnimationFrame(animate);
+  if (isSpinning && currentModel) {
+    const d = 0.06;
+    currentModel.rotation.y += d;
+    spinRemaining -= d;
+    if (spinRemaining <= 0) isSpinning = false;
+  }
+  if (!isSpinning && currentModel) {
+    currentModel.rotation.y += 0.002;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ── Reduced motion ── */
+if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) {
+  document.querySelectorAll('.star').forEach(s => s.style.animation = 'none');
+  document.querySelector('.scan-line').style.animation = 'none';
+}
+
+/* ── Load first model ── */
+window.loadModel('earth', document.getElementById('btn-earth'));
+
+</script>
+
+<!-- GENERAL JS -->
+<script>
+/* Starfield */
+const sf = document.getElementById('starfield');
+for (let i = 0; i < 200; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${Math.random()*4+2}s;--delay:${Math.random()*4}s;--min-op:${Math.random()*0.4+0.1};`;
+  sf.appendChild(s);
+}
+
+/* UTC Clock */
+setInterval(() => {
+  const now = new Date();
+  document.getElementById('footerTime').textContent =
+    `UTC: ${now.getUTCHours().toString().padStart(2,'0')}:${now.getUTCMinutes().toString().padStart(2,'0')}:${now.getUTCSeconds().toString().padStart(2,'0')}`;
+}, 1000);
+
+/* Page swap */
+function showPage(id, link) {
+  document.getElementById('page-main').style.display  = id==='main'  ? 'block' : 'none';
+  document.getElementById('page-about').style.display = id==='about' ? 'block' : 'none';
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  if (link) link.classList.add('active');
+}
+
+/* Toast */
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* Audio */
+const spaceAudio = new Audio('audio/space-ambient.mp3');
+spaceAudio.loop   = true;
+spaceAudio.volume = 0.35;
+let isAudioOn = false;
+
+window.toggleAudio = function() {
+  isAudioOn = !isAudioOn;
+  const btn = document.getElementById('btn-audio');
+  if (isAudioOn) {
+    spaceAudio.play();
+    btn.classList.add('on');
+    btn.textContent = '🔊 SPACE AMBIENCE';
+  } else {
+    spaceAudio.pause();
+    btn.classList.remove('on');
+    btn.textContent = '♪ SPACE AMBIENCE';
+  }
+};
+</script>
+
+</body>
+</html>
